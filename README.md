@@ -563,7 +563,7 @@
 - สั่ง Run Docker ที่สร้างไว้ดู
 
   ```shell
-  docker run --name spring-actuator --detach --rm --publish 8080:8080 bomb0069/spring-boot-actuator 
+  docker run --name spring-application --detach --rm --publish 8080:8080 bomb0069/spring-boot-actuator 
   ```
 
   ลองเข้า App ดู ผ่าน [http://localhost:8080/actuator/](http://localhost:8080/actuator/) จะเห็น Endpoints เหมือนตอนเข้ามาตอน Run Spring-Boot
@@ -571,8 +571,56 @@
 - สั่ง Stop Docker
 
   ```shell
-  docker stop spring-actuator
+  docker stop spring-application
   ```
+
+- ปรับ Docker Compose ให้สามารถรัน Prometheus และ Spring-Boot ไปพร้อม ๆ กัน
+    
+  ```yaml
+  version: "3.5"
+  
+  services:
+    prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      ports:
+        - 9090:9090
+      command:
+        - --config.file=/etc/prometheus/prometheus.yml
+      volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      depends_on:
+        spring-application # เพิ่มให้รัน spring-application ก่อนค่อยรัน prometheus
+  
+    spring-application: # Service ใหม่สำหรับ Spring-Boot
+      image: bomb0069/spring-boot-actuator
+      ports:
+        - 8080:8080
+  ```
+
+- ปรับ Prometheus config ให้ชี้ไปที่ Service spring-application:8080 แทน
+  
+  ```yaml
+  global:
+    scrape_interval:     15s
+    
+    external_labels:
+      monitor: 'codelab-monitor'
+  
+  scrape_configs:
+  
+    - job_name: 'spring-actuator'
+  
+      metrics_path: '/actuator/prometheus'
+  
+      scrape_interval: 5s
+  
+      static_configs:
+        #เปลี่ยนให้ไปที่ spring-appliction ซึ่งเป็นชื่อ Service ที่กำหนดไว้ที่ docker-compose.yml แทน
+        - targets: ['spring-application:8080']
+  ```
+
+  ลองเข้า App ที่ [http://localhost:8080/actuator/](http://localhost:8080/actuator/) และ Prometheus ที่ [http://localhost:9090/](http://localhost:9090/) เพื่อตรวจสอบว่า ใช้งานได้ไหม
 
 ## Reference
 
