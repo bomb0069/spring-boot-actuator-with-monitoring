@@ -539,7 +539,7 @@
   
 - สร้าง Dockerfile เพื่อ Build Image โดย Copy Jar File ที่ได้จาก Step ก่อนหน้า ไปรันผ่าน JRE ของ Java
 
-  ```docker
+  ```dockerfile
   FROM openjdk:8-jre
   ARG JAR_FILE=target/*.jar
   COPY ${JAR_FILE} app.jar
@@ -622,7 +622,96 @@
 
   ลองเข้า App ที่ [http://localhost:8080/actuator/](http://localhost:8080/actuator/) และ Prometheus ที่ [http://localhost:9090/](http://localhost:9090/) เพื่อตรวจสอบว่า ใช้งานได้ไหม
 
+- ปรับ Dockerfile ให้เป็น Multi-Staged เพื่อให้ Build Image จาก Source ได้เลย โดยที่ตอน Run ยังใช้ Base Image เป็น JRE
+
+  ```dockerfile
+  FROM openjdk:8-jdk-alpine as build
+  WORKDIR /workspace/app
+  
+  COPY mvnw .
+  COPY .mvn .mvn
+  COPY pom.xml .
+  COPY src src
+  
+  RUN ./mvnw install -DskipTests
+  
+  FROM openjdk:8-jre
+  ARG JAR_FILE=/workspace/app/target/*.jar
+  COPY --from=build ${JAR_FILE} app.jar
+  ENTRYPOINT ["java","-jar","/app.jar"]
+  ```
+
+  สั่ง Build Docker เพื่อดูว่ามันทำ Multi-Staged ไหม (Build นานหน่อย)
+  
+  ```shell
+  docker build . --tag bomb0069/spring-boot-actuator   
+  
+  [+] Building 466.2s (15/15) FINISHED                                                                                                                                        
+  => [internal] load build definition from Dockerfile                                                                                                                   0.0s
+  => => transferring dockerfile: 37B                                                                                                                                    0.0s
+  => [internal] load .dockerignore                                                                                                                                      0.0s
+  => => transferring context: 2B                                                                                                                                        0.0s
+  => [internal] load metadata for docker.io/library/openjdk:8-jre                                                                                                       2.4s
+  => [internal] load metadata for docker.io/library/openjdk:8-jdk-alpine                                                                                                2.2s
+  => [internal] load build context                                                                                                                                      0.0s
+  => => transferring context: 3.12kB                                                                                                                                    0.0s
+  => CACHED [stage-1 1/2] FROM docker.io/library/openjdk:8-jre@sha256:3a20c93f6e8c1fc41a4d1828b608ce6eb1a45767ba15e42f3bf53bc18f9a677d                                  0.0s
+  => [build 1/7] FROM docker.io/library/openjdk:8-jdk-alpine@sha256:94792824df2df33402f201713f932b58cb9de94a0cd524164a0f2283343547b3                                   30.3s
+  => => resolve docker.io/library/openjdk:8-jdk-alpine@sha256:94792824df2df33402f201713f932b58cb9de94a0cd524164a0f2283343547b3                                          0.0s
+  => => sha256:94792824df2df33402f201713f932b58cb9de94a0cd524164a0f2283343547b3 1.64kB / 1.64kB                                                                         0.0s
+  => => sha256:44b3cea369c947527e266275cee85c71a81f20fc5076f6ebb5a13f19015dce71 947B / 947B                                                                             0.0s
+  => => sha256:a3562aa0b991a80cfe8172847c8be6dbf6e46340b759c2b782f8b8be45342717 3.40kB / 3.40kB                                                                         0.0s
+  => => sha256:f910a506b6cb1dbec766725d70356f695ae2bf2bea6224dbe8c7c6ad4f3664a2 238B / 238B                                                                             1.4s
+  => => sha256:c2274a1a0e2786ee9101b08f76111f9ab8019e368dce1e325d3c284a0ca33397 70.73MB / 70.73MB                                                                      28.1s
+  => => extracting sha256:f910a506b6cb1dbec766725d70356f695ae2bf2bea6224dbe8c7c6ad4f3664a2                                                                              0.0s
+  => => extracting sha256:c2274a1a0e2786ee9101b08f76111f9ab8019e368dce1e325d3c284a0ca33397                                                                              1.9s
+  => [build 2/7] WORKDIR /workspace/app                                                                                                                                 0.3s
+  => [build 3/7] COPY mvnw .                                                                                                                                            0.0s
+  => [build 4/7] COPY .mvn .mvn                                                                                                                                         0.0s
+  => [build 5/7] COPY pom.xml .                                                                                                                                         0.0s
+  => [build 6/7] COPY src src                                                                                                                                           0.0s
+  => [build 7/7] RUN ./mvnw install -DskipTests                                                                                                                       432.4s
+  => [stage-1 2/2] COPY --from=build /workspace/app/target/*.jar app.jar                                                                                                0.1s
+  => exporting to image                                                                                                                                                 0.1s
+  => => exporting layers                                                                                                                                                0.1s
+  => => writing image sha256:1b6dc0748cf64fd74c349ba578a8889f51391120e9229be34ecfe2b254567e3e                                                                           0.0s
+  => => naming to docker.io/bomb0069/spring-boot-actuator
+  ```
+
+- ใส่ Context เข้าไปใน `docker-compose.yaml` เพื่อให้สามารถ build ได้ผ่าน `docker-compose build`
+  
+  ```yaml
+  version: "3.5"
+  
+  services:
+    prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      ports:
+        - 9090:9090
+      command:
+        - --config.file=/etc/prometheus/prometheus.yml
+      volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      depends_on:
+        - spring-application
+  
+    spring-application:
+      image: bomb0069/spring-boot-actuator
+      # เพิ่ม Build Context ให้อ่าน Dockerfile ได้
+      build:
+        context: .
+      ports:
+        - 8080:8080
+  ```
+  ลง Build Docker ผ่าน docker-compose
+
+  ```shell
+  docker-compose build
+  ```
+
 ## Reference
 
 - [Spring Boot Actuator: Production-ready Features](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
 - [Spring Boot Actuator metrics monitoring with Prometheus and Grafana](https://www.callicoder.com/spring-boot-actuator-metrics-monitoring-dashboard-prometheus-grafana/)
+- [Spring Boot Docker - Multi-Stage Build](https://spring.io/guides/topicals/spring-boot-docker/)

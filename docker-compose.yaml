@@ -15,5 +15,7 @@ services:
 
   spring-application:
     image: bomb0069/spring-boot-actuator
+    build:
+      context: .
     ports:
       - 8080:8080
