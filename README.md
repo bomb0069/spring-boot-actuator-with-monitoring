@@ -496,6 +496,37 @@
   docker stop prometheus
   ```
 
+- เขียน Docker-Compose เพื่อจะได้ไม่ต้อง Run Docker ด้วยคำสั่ง ยาว ๆ
+
+  ```yaml
+  version: "3.5"
+  
+  services:
+    prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      ports:
+        - 9090:9090
+      command:
+        - --config.file=/etc/prometheus/prometheus.yml
+      volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+  ```
+
+- สั่ง Docker Compose Up เพื่อ Start Prometheus
+
+  ```shell
+  docker-compose up -d
+  ```
+
+  ลองเข้า [http://localhost:9090/](http://localhost:9090/) ดู
+
+- สั่ง Docker Compose down เพื่อ Stop Service
+
+  ```shell
+  docker-compose down
+  ```
+
 ## Reference
 
 - [Spring Boot Actuator: Production-ready Features](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
