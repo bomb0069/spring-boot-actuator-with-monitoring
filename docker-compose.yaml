@@ -1,6 +1,14 @@
 version: "3.5"
 
 services:
+
+  spring-application:
+    image: bomb0069/spring-boot-actuator
+    build:
+      context: .
+    ports:
+      - 8080:8080
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -13,9 +21,16 @@ services:
     depends_on:
       - spring-application
 
-  spring-application:
-    image: bomb0069/spring-boot-actuator
-    build:
-      context: .
+  grafana:
+    image: grafana/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
     ports:
-      - 8080:8080
+      - 3000:3000
+    volumes:
+      - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ./grafana/spring-boot-statistics_rev2.json:/etc/grafana/provisioning/dashboards/spring-boot-statistics_rev2.json
+    depends_on:
+      - prometheus

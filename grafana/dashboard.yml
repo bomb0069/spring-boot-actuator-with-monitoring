@@ -1,0 +1,6 @@
+apiVersion: 1
+
+providers:
+  - name: 'Spring-Boot Statistics'
+    options:
+      path: /etc/grafana/provisioning/dashboards

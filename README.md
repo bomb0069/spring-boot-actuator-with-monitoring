@@ -766,7 +766,7 @@
 
   ![Grafana Dashboard Upload JSON File](./docs/images/grafana-dashboard-upload-json.png)
 
-  เลือก Upload จาก File [spring-boot-statistics_rev2.json](./grafana/spring-boot-statistics_rev2.json) ซึ่งอยู่ใน Folder grafana ของ project นี้
+  เลือก Upload จาก File [spring-boot-statistics_rev2.json](grafana/spring-boot-statistics_rev2.json) ซึ่งอยู่ใน Folder grafana ของ project นี้
 
   ![Grafana Select File](./docs/images/grafana-dashboard-select-file.png)
 
@@ -785,9 +785,176 @@
 
   ![Grafana Spring-Boot Statistics](./docs/images/grafana-dashboard-spring-boot-statistics.png)
 
+## Start Grafana ด้วย Docker Compose แบบ Automatic
+  
+- เอา Grafana เข้า Docker Compose
+  
+  ```yaml
+  version: "3.5"
+  
+  services:
+  
+    spring-application:
+      image: bomb0069/spring-boot-actuator
+      build:
+        context: .
+      ports:
+        - 8080:8080
+  
+    prometheus:
+      image: prom/prometheus:latest
+      container_name: prometheus
+      ports:
+        - 9090:9090
+      command:
+        - --config.file=/etc/prometheus/prometheus.yml
+      volumes:
+        - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      depends_on:
+        - spring-application
+  
+    grafana: # เพิ่ม Grafana  เข้ามา
+      image: grafana/grafana
+      ports:
+        - 3000:3000 # เปิด Port 3000
+      depends_on:
+        - prometheus # ให้ Start Prometheus ด้วย
+  ```
+
+  หลังจากนั้น Start ทั้งหมดด้วยคำสั่ง `docker-compose up -d` ซึ่งจะพบว่า Datasource และ Dashboard ที่เราสร้างไว้ หายเกลี้ยงหมดเลย เพราะงั้นเดี๋ยวเราจะ Setup ให้มัน Load ของพวกนี้จาก Config โดยที่เราไม่ต้อง Manual สร้างใหม่ทุกครั้ง
+
+- เริ่มด้วยการกำหนด Admin User/Password
+  
+  ```yaml
+    grafana: # ดูเฉพาะส่วนของ Grafana Service
+      image: grafana/grafana
+      environment:
+        - GF_SECURITY_ADMIN_USER=admin         # Env สำหรับกำหนด admin username
+        - GF_SECURITY_ADMIN_PASSWORD=password  # Env สำหรับกำหนด admin password
+      ports:
+        - 3000:3000
+      depends_on:
+        - prometheus
+  ```
+  
+  หลังจากนั้นลอง Start Grafana ใหม่ด้วยคำสั่ง `docker-compose up -d grafana` ซึ่งจะพบว่า สามารถ Login ด้วย user/password ที่ต้องการ
+  
+- Load Data Source แบบ Auto
+
+  Grafana สามารถ Load Config ต่าง ๆ ผ่าน Folder `/etc/grafana/provisioning` [Provisioning Grafana](https://grafana.com/docs/grafana/latest/administration/provisioning/) 
+  
+  เพราะฉะนั้น เราจะสร้าง `datasource.yml` เพื่อให้ Granafa เข้ามา Load Datasource จาก Config แทนที่จะสร้างด้วย Manual ผ่านหน้า UI โดยใน project นี้เก็บอยู่ใน Folder `./grafana`
+
+  ```yaml
+  # ./garfana/datasource.yml
+  apiVersion: 1
+  
+  datasources:
+    - name: Prometheus
+      type: prometheus
+      access: server
+      url: http://prometheus:9090
+  ```
+  
+  ทำการ Mount Volume ผ่าน Docker Compose
+  
+  ```yaml
+    grafana:
+      image: grafana/grafana
+      environment:
+        - GF_SECURITY_ADMIN_USER=admin
+        - GF_SECURITY_ADMIN_PASSWORD=password
+      ports:
+        - 3000:3000
+      volumes:
+        # Mount Volume ให้กับ File datasource.yml
+        - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      depends_on:
+        - prometheus
+  ```
+
+  สั่ง Stop, Remove และ Start Grafana ขึ้นมาใหม่
+  
+  ```shell
+  docker-compose stop grafana
+  docker-compose rm grafana
+  docker-compose up -d grafana
+  ```
+  
+  Login Grafana และเข้าไปดูที่ Datasource จะเห็น Datasource ที่ ชื่อ Prometheus ทันที
+
+  ![Datasource ที่ ชื่อ Prometheus](./docs/images/grafana-provisioning-prometheus.png)
+
+- Import Dashboard แบบ Auto
+
+  ด้วยหลักการเดียวกันกับ Datasource เราสามารถ import Dashboard ผ่าน config ได้เช่นเดียวกัน โดยที่มีขั้นตอนดังนี้
+  
+  สร้าง `dashboard.yml`
+
+  ```yaml
+  # ./garfana/dashboard.yml
+  
+  apiVersion: 1
+  
+  providers:
+    - name: 'Spring-Boot Statistics'
+      options:
+        path: /etc/grafana/provisioning/dashboards
+  ```
+
+  Download Dashboard file มาใส่ใน Folder `./garfana/` ในกรณีนี้ ผมใช้ `spring-boot-statistics_rev2.json` จากก่อนหน้านี้ เพียงแต่เข้าไป แก้ให้ Dashboard นี้ไปใช้ Datasource ที่ชื่อ Promethues ตามที่เราสร้างไว้เลย
+
+  ```text
+  #  ตัวอย่างที่แก้ใน File spring-boot-statistics_rev2.json
+  ...
+  "datasource": "${DS_PROMETHEUS}", # เดิมสร้างตัวแปรให้เลือกจากหน้า Web
+  "decimals": 1,
+  "editable": true,
+  ...
+  
+  # แก้เป็น 
+  ...
+  "datasource": "Prometheus", # Fix ชื่อของ Datasource เลย
+  "decimals": 1,
+  "editable": true,
+  ...
+  ```
+
+  ทำการ Mount Volume ผ่าน Docker Compose
+
+  ```yaml
+    grafana:
+      image: grafana/grafana
+      environment:
+        - GF_SECURITY_ADMIN_USER=admin
+        - GF_SECURITY_ADMIN_PASSWORD=password
+      ports:
+        - 3000:3000
+      volumes:
+        - ./grafana/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+        # Mount Volume ให้กับ File dashboard.yml และ JSON File
+        - ./grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+        - ./grafana/spring-boot-statistics_rev2.json:/etc/grafana/provisioning/dashboards/spring-boot-statistics_rev2.json
+      depends_on:
+        - prometheus
+  ```
+
+  สั่ง Stop, Remove และ Start Grafana ขึ้นมาใหม่
+
+  ```shell
+  docker-compose stop grafana
+  docker-compose rm grafana
+  docker-compose up -d grafana
+  ```
+
+  Login Grafana และเข้าไปดูที่ Dashboard `Spring-Boot Statistics` ตามที่เรา Config ได้เลย
+
+  ![Dashboard ที่ชื่อ Spring-Boot Statistics](./docs/images/grafana-provisioning-dashboard.png)
+
 ## Reference
 
 - [Spring Boot Actuator: Production-ready Features](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
 - [Spring Boot Actuator metrics monitoring with Prometheus and Grafana](https://www.callicoder.com/spring-boot-actuator-metrics-monitoring-dashboard-prometheus-grafana/)
 - [Spring Boot Docker - Multi-Stage Build](https://spring.io/guides/topicals/spring-boot-docker/)
 - [Micrometer Issue - when i upgrade to 1.1.3, metric name was changed #1267](https://github.com/micrometer-metrics/micrometer/issues/1267)
+- [Provisioning Grafana](https://grafana.com/docs/grafana/latest/administration/provisioning/)
