@@ -710,8 +710,84 @@
   docker-compose build
   ```
 
+## Start Grafana เพื่อเอา ข้อมูลจาก Prometheus มา Display บน Dashboard
+
+- รัน Grafana ด้วย Docker
+
+  ```shell
+  docker run --name=grafana --detach --rm -p 3000:3000 grafana/grafana
+  ```
+
+- เข้า Grafana ผ่าน URL [http://localhost:3000/](http://localhost:3000/) 
+  
+  ![Grafana Login Page](./docs/images/grafana-login-page.png)
+  
+  Login ด้วย admin/admin (default user/pass ของ grafana image)
+
+  ![Grafana Login with Admin](./docs/images/grafana-login-with-default-user.png)
+
+  มันจะขึ้นให้เป็น Password ซึ่ง Skip ไปก่อน
+
+  ![Grafana Skip Password change](./docs/images/grafana-skip-password-change.png)
+  
+  จะเห็นหน้า Home ของ Grafana
+
+  ![Grafana Home Page](./docs/images/grafana-home-page.png)
+
+- เพิ่ม Datasource เพื่อให้ Grafana ไปเอาข้อมูลจาก Prometeus ที่ Start ไว้
+
+  ไปที่ Menu `Configurations` -> `Data sources`
+
+  ![Grafana Configuration -> Data Sources](./docs/images/grafana-config-data-source.png)
+  
+  เพิ่ม Data Sources ผ่านปุ่ม `Add Data Source`
+
+  ![Grafana Add Data Source](./docs/images/grafana-add-data-source.png)
+
+  Set Prometheus URL ไปที่ [http://host.docker.internal:9090](http://host.docker.internal:9090) ให้ต่อออกมากนอก Container ไปก่อน เดี๋ยวค่อยย้าย ไปที่ docker-compose ค่อยเปลี่ยนเป็นชื่อ Service
+
+  ![Grafana Set Prometheus URL](./docs/images/grafana-set-prometheus-url.png)
+
+  ทดสอบการเชื่อมต่อไปยัง Prometheus ด้วยปุ่ม `Save & Test`
+  
+  ![Grafana Save and Test Prometheus](./docs/images/grafana-prometheus-save-and-test.png)
+
+  ถ้าเชื่อมต่อ และบันทึกได้ ถูกต้องจะขึ้น `Datasource updated`
+
+  ![Grafana Datasource Updated](./docs/images/grafana-prometheus-datasource-updated.png) 
+
+- Import Dashboard for Spring-Boot to Grafana
+  
+  ไปที่ปุ่ม `+` เลือก `Create` -> `Import`
+
+  ![Grafana Dashboard Create -> Import](./docs/images/grafana-dashboard-create-import.png)
+
+  เลือก `Upload JSON file`
+
+  ![Grafana Dashboard Upload JSON File](./docs/images/grafana-dashboard-upload-json.png)
+
+  เลือก Upload จาก File [spring-boot-statistics_rev2.json](./grafana/spring-boot-statistics_rev2.json) ซึ่งอยู่ใน Folder grafana ของ project นี้
+
+  ![Grafana Select File](./docs/images/grafana-dashboard-select-file.png)
+
+  ```text
+  หมายเหตุ : Dashboard ต้นแบบได้มาจาก Grafana Dashboard 
+  [หมายเลข 6756 - Spring Boot Statistics by sinsengumi](https://grafana.com/grafana/dashboards/6756)
+  แต่เนื่องจาก Micrometer ที่ใช้ในการดึงข้อมูล JVM มีประเด็นของการเปลี่ยน metrics name 
+  ทำให้ไม่สามารถใช้งานได้ ผลเลยปรับชื่อ Metrics Name แล้ว Save เก็บไว้ก่อน เพื่อหาหา Publish อีกที
+  ```
+
+  เลือก Datasource เป็น `Prometheus`
+
+  ![Grafana Select Datasource](./docs/images/grafana-dashboard-select-datasource.png)
+
+  ก็จะได้หน้า Dashboard สำหรับการดูข้อมูลที่ได้จาก Spring-Boot Actuator แล้ว
+
+  ![Grafana Spring-Boot Statistics](./docs/images/grafana-dashboard-spring-boot-statistics.png)
+
 ## Reference
 
 - [Spring Boot Actuator: Production-ready Features](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
 - [Spring Boot Actuator metrics monitoring with Prometheus and Grafana](https://www.callicoder.com/spring-boot-actuator-metrics-monitoring-dashboard-prometheus-grafana/)
 - [Spring Boot Docker - Multi-Stage Build](https://spring.io/guides/topicals/spring-boot-docker/)
+- [Micrometer Issue - when i upgrade to 1.1.3, metric name was changed #1267](https://github.com/micrometer-metrics/micrometer/issues/1267)
