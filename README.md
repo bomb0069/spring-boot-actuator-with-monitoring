@@ -1,8 +1,27 @@
 # Spring-Boot with Prometheus and Grafana
 
+## Overviews
+
+![ภาพรวม](./docs/images/spring-actuator.jpg)
+
+จากภาพ เราจะทำการเอาข้อมูล Metrics ต่าง ๆ จากใน JVM ทั้งในส่วนของ CPU, Heap และ GC รวมถึง Metrics อื่น ๆ ที่ Spring provides ไว้ ขึ้นไปแสดงบน Dashboard เพื่อจะสามารถ Monitor การทำงานของ Applcation ที่พัฒนาด้วย Spring-Boot ได้ โดยในที่นี้เราจะเอา Prometheus เข้ามาอ่านค่า Metrics จาก Actuator แล้วให้ Grafana มาอ่านข้อมูลใน Prometheus ไปแสดงผลอีกที
+
+ซึ่งขั้นตอนการทำทั้งหมดประกอบไปด้วย
+
+- [Spring-Boot Web with Actuator](#spring-boot-web-with-actuator)
+- [Expose Endpoints เพื่อรองรับ Prometheus ผ่าน /actuator/prometheus](#expose-endpoints-เพื่อรองรับ-prometheus-ผ่าน-actuatorprometheus)
+- [Start Prometheus เพื่อ เข้ามาอ่าน metrics ของ Actuator](#start-prometheus-เพื่อ-เข้ามาอ่าน-metrics-ของ-actuator)
+- [Start Spring-Boot ด้วย Docker และ Docker-Compose](#start-spring-boot-ด้วย-docker-และ-docker-compose)
+- [Start Grafana เพื่อเอา ข้อมูลจาก Prometheus มา Display บน Dashboard](start-grafana-เพื่อเอา-ข้อมูลจาก-prometheus-มา-display-บน-dashboard)
+- [Start Grafana ด้วย Docker Compose](#start-grafana-ด้วย-docker-compose)
+
 ## Spring-Boot Web with Actuator
 
+- สร้าง Spring Boot Project ผ่าน [https://start.spring.io/](https://start.spring.io/) โดยกำหนด Dependencies 2 ตัวคือ Web และ Actuator
+
 - Start Spring-Boot ด้วยคำสั่ง
+
+  Extract File zip ที่ได้จาก Spring Initializr
 
   ```shell
   ./mvnw spring-boot:run
@@ -10,7 +29,7 @@
 
 - ลองเข้า [http://localhost:8080/actuator](http://localhost:8080/actuator) จะเห็น Endpoint ในส่วนของ health เท่านั้น
 
-  http://localhost:8080/actuator
+  [http://localhost:8080/actuator](http://localhost:8080/actuator)
   
   ```json
   {
@@ -444,7 +463,7 @@
 
 ## Start Prometheus เพื่อ เข้ามาอ่าน metrics ของ Actuator
 
-- เขียน Config Prometheus 
+- เขียน Config Prometheus
   
   ```yaml
   global:
@@ -527,7 +546,7 @@
   docker-compose down
   ```
   
-## สร้าง Dockerfile แล้วเอา Spring-Boot ใส่เข้า Docker-Compose เพื่อรันพร้อมกันไปเลย
+## Start Spring-Boot ด้วย Docker และ Docker-Compose
 
 - สร้าง Jar file แบบ Manual เพื่อ ใช้ในการรัน
 
@@ -575,7 +594,7 @@
   ```
 
 - ปรับ Docker Compose ให้สามารถรัน Prometheus และ Spring-Boot ไปพร้อม ๆ กัน
-    
+
   ```yaml
   version: "3.5"
   
@@ -704,6 +723,7 @@
       ports:
         - 8080:8080
   ```
+
   ลง Build Docker ผ่าน docker-compose
 
   ```shell
@@ -718,7 +738,7 @@
   docker run --name=grafana --detach --rm -p 3000:3000 grafana/grafana
   ```
 
-- เข้า Grafana ผ่าน URL [http://localhost:3000/](http://localhost:3000/) 
+- เข้า Grafana ผ่าน URL [http://localhost:3000/](http://localhost:3000/)
   
   ![Grafana Login Page](./docs/images/grafana-login-page.png)
   
@@ -754,7 +774,7 @@
 
   ถ้าเชื่อมต่อ และบันทึกได้ ถูกต้องจะขึ้น `Datasource updated`
 
-  ![Grafana Datasource Updated](./docs/images/grafana-prometheus-datasource-updated.png) 
+  ![Grafana Datasource Updated](./docs/images/grafana-prometheus-datasource-updated.png)
 
 - Import Dashboard for Spring-Boot to Grafana
   
@@ -785,7 +805,7 @@
 
   ![Grafana Spring-Boot Statistics](./docs/images/grafana-dashboard-spring-boot-statistics.png)
 
-## Start Grafana ด้วย Docker Compose แบบ Automatic
+## Start Grafana ด้วย Docker Compose
   
 - เอา Grafana เข้า Docker Compose
   
@@ -841,7 +861,7 @@
   
 - Load Data Source แบบ Auto
 
-  Grafana สามารถ Load Config ต่าง ๆ ผ่าน Folder `/etc/grafana/provisioning` [Provisioning Grafana](https://grafana.com/docs/grafana/latest/administration/provisioning/) 
+  Grafana สามารถ Load Config ต่าง ๆ ผ่าน Folder `/etc/grafana/provisioning` [Provisioning Grafana](https://grafana.com/docs/grafana/latest/administration/provisioning/)
   
   เพราะฉะนั้น เราจะสร้าง `datasource.yml` เพื่อให้ Granafa เข้ามา Load Datasource จาก Config แทนที่จะสร้างด้วย Manual ผ่านหน้า UI โดยใน project นี้เก็บอยู่ใน Folder `./grafana`
 
