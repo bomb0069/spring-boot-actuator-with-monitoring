@@ -488,7 +488,7 @@
   
   ![Prometheus saw System CPU Usage for Spring-Boot](docs/images/prometheus-system-cpu-usage.png)
 
-  ![Prometheus saw System CPU Usage Graph](docs/images/prometheus-system-system-cpu-usage-graph.png)
+  ![Prometheus saw System CPU Usage Graph](docs/images/prometheus-system-cpu-usage-graph.png)
 
 - stop Prometheus
 
