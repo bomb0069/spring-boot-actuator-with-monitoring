@@ -526,6 +526,53 @@
   ```shell
   docker-compose down
   ```
+  
+## สร้าง Dockerfile แล้วเอา Spring-Boot ใส่เข้า Docker-Compose เพื่อรันพร้อมกันไปเลย
+
+- สร้าง Jar file แบบ Manual เพื่อ ใช้ในการรัน
+
+  ```shell
+  ./mvnw install
+  ```
+  
+  จะได้ Jar file ของ Spring-Boot อยู่ใน `target/` ซึ่งในกรณีนี้จะเป็น File `target/demo-actuator-0.0.1-SNAPSHOT.jar` (ตาม pom.xml)
+  
+- สร้าง Dockerfile เพื่อ Build Image โดย Copy Jar File ที่ได้จาก Step ก่อนหน้า ไปรันผ่าน JRE ของ Java
+
+  ```docker
+  FROM openjdk:8-jre
+  ARG JAR_FILE=target/*.jar
+  COPY ${JAR_FILE} app.jar
+  ENTRYPOINT ["java","-jar","/app.jar"]
+  ```
+
+- สั่ง Build Docker Image ผ่านคำสั่ง (tags เป็น bomb0069/spring-boot-actuator)
+  
+ ```shell
+  docker build . --tag bomb0069/spring-boot-actuator   
+  ```
+
+  ลอง List Docker Image ที่สร้างขึ้นมาดู
+
+  ```shell
+  docker image ls                                                                                     
+  REPOSITORY                      TAG            IMAGE ID       CREATED          SIZE
+  bomb0069/spring-boot-actuator   latest         80531b75fb44   15 minutes ago   293MB
+  ```
+
+- สั่ง Run Docker ที่สร้างไว้ดู
+
+  ```shell
+  docker run --name spring-actuator --detach --rm --publish 8080:8080 bomb0069/spring-boot-actuator 
+  ```
+
+  ลองเข้า App ดู ผ่าน [http://localhost:8080/actuator/](http://localhost:8080/actuator/) จะเห็น Endpoints เหมือนตอนเข้ามาตอน Run Spring-Boot
+
+- สั่ง Stop Docker
+
+  ```shell
+  docker stop spring-actuator
+  ```
 
 ## Reference
 
