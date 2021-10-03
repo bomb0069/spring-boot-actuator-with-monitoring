@@ -442,6 +442,60 @@
   jvm_threads_daemon_threads 12.0
   ```
 
+## Start Prometheus เพื่อ เข้ามาอ่าน metrics ของ Actuator
+
+- เขียน Config Prometheus 
+  
+  ```yaml
+  global:
+    scrape_interval:     15s # By default, scrape targets every 15 seconds.
+  
+    # Attach these labels to any time series or alerts when communicating with
+    # external systems (federation, remote storage, Alertmanager).
+    external_labels:
+      monitor: 'spring-boot-monitor'
+  
+  # A scrape configuration containing exactly one endpoint to scrape:
+  # Here it's Prometheus itself.
+  scrape_configs:
+  
+    - job_name: 'spring-actuator'
+  
+      metrics_path: '/actuator/prometheus'
+  
+      scrape_interval: 5s
+  
+      static_configs:
+        - targets: ['host.docker.internal:8080']
+  
+  ```
+
+- รัน Prometheus ด้วย Docker
+
+  ```shell
+  docker run --name prometheus --rm --detach --volume $(pwd)/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro --publish 9090:9090 prom/prometheus:latest --config.file=/etc/prometheus/prometheus.yml
+  ```
+
+- ลองเข้า Prometheus ผ่าน [http://localhost:9090/](http://localhost:9090/) ดู
+
+  ![Prometheus Start on http://localhost:9090/](docs/images/prometheus-started.png)
+
+  กรอกเพือ Query ข้อมูล 'cpu'
+
+  ![Prometheus can see CPU](docs/images/prometheus-cpu.png)
+
+  เลือก 'system_cpu_usage' กด `Execute` แล้วไปที่ Tab `Graph`
+  
+  ![Prometheus saw System CPU Usage for Spring-Boot](docs/images/prometheus-system-cpu-usage.png)
+
+  ![Prometheus saw System CPU Usage Graph](docs/images/prometheus-system-system-cpu-usage-graph.png)
+
+- stop Prometheus
+
+  ```shell
+  docker stop prometheus
+  ```
+
 ## Reference
 
 - [Spring Boot Actuator: Production-ready Features](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html)
