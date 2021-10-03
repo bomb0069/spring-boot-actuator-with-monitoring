@@ -958,3 +958,4 @@
 - [Spring Boot Docker - Multi-Stage Build](https://spring.io/guides/topicals/spring-boot-docker/)
 - [Micrometer Issue - when i upgrade to 1.1.3, metric name was changed #1267](https://github.com/micrometer-metrics/micrometer/issues/1267)
 - [Provisioning Grafana](https://grafana.com/docs/grafana/latest/administration/provisioning/)
+- [Grafana provisioning – How to configure data sources and dashboards](https://keepgrowing.in/tools/grafana-provisioning-how-to-configure-data-sources-and-dashboards/)
