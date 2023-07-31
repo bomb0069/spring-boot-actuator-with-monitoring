@@ -84,12 +84,18 @@
 
   ซึ่งถ้าต้องการให้ Endpoint ในส่วนของ Metrics ออกมาmที่ Web ต้อง config เพิ่ม
 
-- เปิดให้ metrics เข้าได้จาก Web ต้องเพิ่ม Config เข้าไป ใน application.properties
+- เปิดให้ metrics เข้าได้จาก Web ต้องเพิ่ม Config เข้าไป ใน application.yml
   
-  ```properties
-  # src/main/resources/application.properties
+  ```yaml
+  # src/main/resources/application.yml
   
-  management.endpoints.web.exposure.include=health,metrics
+  management:
+    endpoints:
+      web:
+        exposure:
+          include:
+            - health
+            - metrics
   ```
 
   ```json
@@ -274,10 +280,17 @@
   </dependency>
   ```
 
-- เพิ่ม prometheus เข้าไปใน application.properties
+- เพิ่ม prometheus เข้าไปใน application.yml
   
-  ```properties
-  management.endpoints.web.exposure.include=health,metrics,prometheus
+  ```yaml
+  management:
+    endpoints:
+      web:
+        exposure:
+          include:
+            - health
+            - metrics
+            - prometheus
   ```
 
 - ลองเข้า [http://localhost:8080/actuator/](http://localhost:8080/actuator/) จะเห็น Endpoints prometheus เพิ่มเข้ามา

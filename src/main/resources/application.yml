@@ -1,0 +1,25 @@
+management:
+  endpoint:
+    web:
+      exposure:
+        include:
+          - health
+          - metrics
+          - prometheuss
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        liveness:
+          include: '*'
+          exclude:
+            - db
+            - readinessState
+        readiness:
+          include: '*'
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
