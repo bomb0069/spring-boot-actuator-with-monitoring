@@ -1,23 +1,23 @@
 management:
-  endpoint:
+  endpoints:
     web:
       exposure:
         include:
           - health
           - metrics
-          - prometheuss
+          - prometheus
     health:
       probes:
         enabled: true
       show-details: always
       group:
         liveness:
-          include: '*'
+          include: "*"
           exclude:
             - db
             - readinessState
         readiness:
-          include: '*'
+          include: "*"
   health:
     livenessState:
       enabled: true
